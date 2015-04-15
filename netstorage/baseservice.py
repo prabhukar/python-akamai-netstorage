@@ -31,6 +31,7 @@ class Methods(object):
 class Actions(object):
     DU = 'du'
     DIR = 'dir'
+    DOWNLOAD = 'download'
 
 
 class Binding(object):
@@ -45,6 +46,8 @@ class Binding(object):
         self.key_name = key_name
         self.cp_code = cp_code
         self.path = path
+        if self.path is None : # To ensure we can search at Root of CP Code 
+            self.path = ''
 
         # To ensure you will not delete a content by mistake
         # Call allow_delete method before requesting a delete action
@@ -76,13 +79,22 @@ class Binding(object):
         if 'action' not in params:
             raise AkamaiInvalidActionException()
 
-    def send(self, cp_code, path, params, method=Methods.GET):
+    def send(self, cp_code, path, params,method=Methods.GET, proxies=None,downloadfile=None):
         self.__check_params(params)
         path = path or self.path
         cp_code = cp_code or self.cp_code
         url = self.__get_url(cp_code, path)
         relative = self.__get_relative_url(cp_code, path)
         action = urlencode(params)
+        proxy=proxies
+
+
+        if ('download' in params) and (downloadfile is None):
+            raise AkamaiBadRequestException()
+        else:
+            download_file=downloadfile
+
+
 
         try:
             cp_code = int(cp_code)
@@ -96,9 +108,38 @@ class Binding(object):
         if method == Methods.DELETE and not self.allow_delete:
             raise AkamaiDeleteNotAllowedException()
 
-        r = requests.request(method, url, headers=self.__get_headers(action),
-                             auth=AkamaiAuth(self.key, self.key_name, relative, action))
+        if 'download' in action:
+            if not os.path.exists(relative):
+                os.makedirs(relative)
 
+
+            with open(relative + '/' + download_file,'wb') as handle:
+                r = requests.request(method,
+                                     url + '/' + download_file,
+                                     headers=self.__get_headers(action),
+                                     auth=AkamaiAuth(self.key,
+                                             self.key_name,
+                                             relative + '/' + download_file,
+                                             action),
+                                     proxies=proxy)
+                if not r.ok:
+                    exit()
+                for block in r.iter_content(2048):
+                    if not block:
+                        break
+                    handle.write(block)
+            handle.close()
+            return relative + '/' + download_file, r.status_code
+        else:
+            r = requests.request(method,
+                                 url,
+                                 headers=self.__get_headers(action),
+                                 auth=AkamaiAuth(self.key,
+                                                 self.key_name,
+                                                 relative,
+                                                 action),
+                                 proxies=proxy)
+        
         return r.text, r.status_code
 
     def allow_deleting(self):
@@ -186,3 +227,22 @@ class Binding(object):
             raise AkamaiFileNotFoundException((cp_code or self.cp_code, path, response, status, ))
         else:
             return response
+
+    def download(self, cp_code=None, path=None, params=None,proxies=None,downloadfile=None):
+        params = params or {}
+        params['action'] = Actions.DOWNLOAD
+        proxy=proxies
+        download_file=downloadfile
+
+        # Making the request
+        response, status = self.send(cp_code, path, params,proxies=proxy,downloadfile=download_file)
+
+        if status == 200:
+            print "file saved in " + response
+        elif status == 403:
+            raise AkamaiForbiddenException((cp_code or self.cp_code, path, response, status, ))
+        elif status == 404:
+            raise AkamaiFileNotFoundException((cp_code or self.cp_code, path, response, status, ))
+        else:
+            return response
+
