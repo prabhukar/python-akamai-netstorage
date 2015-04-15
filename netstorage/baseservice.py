@@ -11,7 +11,7 @@ import requests
 # Internal imports
 from netstorage.auth import AkamaiAuth
 from netstorage.exception import *
-from netstorage.constants import AKAMAI_PROTOCOL_VERSION, AKAMAI_HOST_POSTFIX
+from netstorage.constants import *
 
 
 class Methods(object):
