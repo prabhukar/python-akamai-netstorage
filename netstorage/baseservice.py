@@ -3,6 +3,7 @@ from urllib import urlencode
 from xml.etree.ElementTree import fromstring as xml_fromstring, ParseError
 from os.path import join as path_join
 from datetime import datetime
+import os
 
 # Third party imports
 import requests
