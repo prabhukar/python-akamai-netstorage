@@ -1,6 +1,8 @@
 class AkamaiError(Exception):
     pass
 
+class AkamaiBadRequestException(AkamaiError):
+    pass
 
 class AkamaiInvalidRequestParamsException(AkamaiError):
     pass
