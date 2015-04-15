@@ -5,8 +5,8 @@ fiddlerproxy = { # for capturing data going via Fiddler
                 "https": "http://localhost:8888",
             }
 proxy = { # Internet Facing proxies
-                "http": "https://proxy.jpmchase.net:8443",
-                "https": "https://proxy.jpmchase.net:8443",
+                "http": "https://<proxyname>:<port>",
+                "https": "https://<proxyname>:<port>",
             }
 proxydirect = { # direct proxy for connecting directly
                 "http": "",
